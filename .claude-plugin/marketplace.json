@@ -1,0 +1,21 @@
+{
+  "name": "rux-mods",
+  "description": "Ruxo's Claude Code mods",
+  "owner": {
+    "name": "Ruxo Zheng"
+  },
+  "plugins": [
+    {
+      "name": "token-weather",
+      "description": "5-hour and weekly usage above the prompt, each with its own weather forecast",
+      "version": "0.3.0",
+      "source": "./token-weather"
+    },
+    {
+      "name": "thinking-pane",
+      "description": "Shows the model's thinking live in a docked pane, as it streams; past thoughts fold",
+      "version": "0.2.0",
+      "source": "./thinking-pane"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "thinking-pane",
+  "version": "0.2.0",
+  "description": "Shows the model's thinking live in a docked pane, as it streams; past thoughts fold",
+  "author": { "name": "Ruxo Zheng" },
+  "types": "./types/index.d.ts"
+}
