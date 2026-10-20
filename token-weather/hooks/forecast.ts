@@ -16,13 +16,13 @@ const TURNS = 12
 
 export const weatherFor = (percent: number): Weather =>
   percent < 25
-    ? { icon: '☀', word: 'Clear', color: 'lime' }
+    ? { icon: '☀', word: 'Clear', color: '#00FF00' }
     : percent < 50
       ? { icon: '☁', word: 'Cloudy', color: 'cyan' }
       : percent < 75
         ? { icon: '☂', word: 'Showers', color: 'yellow' }
         : percent < 90
-          ? { icon: '☇', word: 'Storm', color: 'pink' }
+          ? { icon: '☇', word: 'Storm', color: '#FFC0CB' }
           : { icon: '↯', word: 'Limit soon', color: 'red' }
 
 const oneDecimal = (n: number): string => n.toFixed(1).replace(/\.0$/, '')
