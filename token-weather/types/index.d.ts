@@ -3,6 +3,7 @@ export type Forecast = {
   window: number
   percent: number
   startedAt: number
+  memoryDir?: string
 }
 
 /** One rate-limit window: how much is used, and when it resets in epoch ms. */

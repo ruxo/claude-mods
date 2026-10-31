@@ -1,4 +1,4 @@
-import type { On } from 'claude-code'
+import type { On, SessionContextBreakdown } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import {
@@ -6,6 +6,7 @@ import {
   formatTokens,
   limitLine,
   limitsFrom,
+  memoryDirOf,
   record,
   sparkline,
   untilReset,
@@ -34,6 +35,7 @@ const engineBand = (on: On) =>
 
 const HOUR = 3_600_000
 const T0 = Date.parse('2026-10-19T01:00:00Z')
+const MEMORY_DIR = 'C:\\Users\\RZ\\.claude\\projects\\demo\\memory'
 
 describe('forecast', () => {
   test('weather follows the thresholds', async () => {
@@ -69,6 +71,25 @@ describe('forecast', () => {
     }
     expect(f.history).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
     expect(record(f, { tokens: 5, window: 100, startedAt: 2 }).history).toEqual([5])
+  })
+
+  test('the memory directory comes from the auto-memory file', async () => {
+    expect(
+      memoryDirOf([
+        { path: 'C:\\Users\\RZ\\.claude\\CLAUDE.md', type: 'User' },
+        { path: `${MEMORY_DIR}\\MEMORY.md`, type: 'AutoMem' },
+      ]),
+    ).toBe(MEMORY_DIR)
+    expect(memoryDirOf([{ path: '/home/u/.claude/projects/p/memory/MEMORY.md', type: 'AutoMem' }])).toBe(
+      '/home/u/.claude/projects/p/memory',
+    )
+    expect(memoryDirOf([{ path: 'C:\\Users\\RZ\\.claude\\CLAUDE.md', type: 'User' }])).toBeUndefined()
+  })
+
+  test('the memory directory carries over a turn without one, not into a new session', async () => {
+    const f = record(null, { tokens: 1, window: 100, startedAt: 1, memoryDir: MEMORY_DIR })
+    expect(record(f, { tokens: 2, window: 100, startedAt: 1 }).memoryDir).toBe(MEMORY_DIR)
+    expect(record(f, { tokens: 2, window: 100, startedAt: 2 }).memoryDir).toBeUndefined()
   })
 })
 
@@ -106,7 +127,14 @@ test('the band above the prompt shows each window with its own weather',async ($
   on('session.usage', () => ({
     value: {
       startedAt: 1,
-      context: { tokens, window: 200_000, percent: Math.round((tokens * 100) / 200_000) },
+      context: {
+        tokens,
+        window: 200_000,
+        percent: Math.round((tokens * 100) / 200_000),
+        breakdown: {
+          memoryFiles: [{ path: `${MEMORY_DIR}\\MEMORY.md`, type: 'AutoMem', tokens: 900 }],
+        } as SessionContextBreakdown,
+      },
       rateLimits: [
         { kind: 'five_hour', percentUsed: fiveHour, resetsAt: new Date(T0 + 2 * HOUR + 13 * 60_000).toISOString() },
         { kind: 'seven_day', percentUsed: 12, resetsAt: new Date(T0 + 76 * HOUR).toISOString() },
@@ -136,6 +164,7 @@ test('the band above the prompt shows each window with its own weather',async ($
     expect(await ui.find({ type: 'Text', text: 'week 12% ↻3d4h' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /ctx 67% 134\.4k\/200k ▂▆/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /▲ \+98\.3k last turn/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: `memory: ${MEMORY_DIR}` })).toBeDefined()
     await ui.unmount()
   }
 })

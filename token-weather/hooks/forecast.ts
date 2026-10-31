@@ -9,7 +9,10 @@ export type Reading = {
   window: number
   percent?: number
   startedAt: number
+  memoryDir?: string
 }
+
+export type MemoryFile = { path: string; type: string }
 
 const BARS = '▁▂▃▄▅▆▇█'
 const TURNS = 12
@@ -54,14 +57,21 @@ export const addedLine = (history: readonly number[]): string | undefined => {
     : `▼ -${formatTokens(-added)} last turn`
 }
 
+export const memoryDirOf = (files: readonly MemoryFile[]): string | undefined => {
+  const path = files.find(file => file.type === 'AutoMem')?.path
+  const cut = path === undefined ? -1 : Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/'))
+  return path === undefined || cut <= 0 ? undefined : path.slice(0, cut)
+}
+
 export const record = (prev: Forecast | null, reading: Reading): Forecast => {
   const isSameSession = prev !== null && prev.startedAt === reading.startedAt
   const history = [...(isSameSession ? prev.history : []), reading.tokens].slice(-TURNS)
   const percent =
     reading.percent ??
     (reading.window > 0 ? Math.round((reading.tokens * 100) / reading.window) : 0)
+  const memoryDir = reading.memoryDir ?? (isSameSession ? prev.memoryDir : undefined)
 
-  return { history, window: reading.window, percent, startedAt: reading.startedAt }
+  return { history, window: reading.window, percent, startedAt: reading.startedAt, memoryDir }
 }
 
 const limitOf = (rateLimits: readonly RateLimit[], kind: string): Limit | undefined => {

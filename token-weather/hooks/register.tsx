@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { Limit } from '../types'
-import { addedLine, formatTokens, limitLine, limitsFrom, record, sparkline, weatherFor } from './forecast'
+import { addedLine, formatTokens, limitLine, limitsFrom, memoryDirOf, record, sparkline, weatherFor } from './forecast'
 
 const TICK_MS = 60_000
 const forecast = atom({ plugin: 'token-weather', key: 'forecast' } as const, null)
@@ -38,13 +38,14 @@ export const register: Register = on => {
       return ran
     }
 
-    const usage = await $.session.usage()
+    const usage = await $.session.usage({ breakdown: 'summary' })
     const at = await $.clock.now()
     await update($, limits, () => limitsFrom(usage.rateLimits))
     await update($, now, () => at)
-    const { tokens, window, percent } = usage.context
+    const { tokens, window, percent, breakdown } = usage.context
     if (tokens !== undefined) {
-      const reading = { tokens, window, percent, startedAt: usage.startedAt }
+      const memoryDir = memoryDirOf(breakdown?.memoryFiles ?? [])
+      const reading = { tokens, window, percent, startedAt: usage.startedAt, memoryDir }
       await update($, forecast, prev => record(prev, reading))
     }
 
@@ -73,16 +74,19 @@ export const register: Register = on => {
     }
 
     return (
-      <Box>
-        {window('5h', fiveHour)}
-        <Text>{'  ·  '}</Text>
-        {window('week', weekly)}
-        {context !== null && latest !== undefined && (
-          <Text dimColor>
-            {`  ·  ctx ${context.percent}% ${formatTokens(latest)}/${formatTokens(context.window)} ${sparkline(context.history, context.window)}`}
-          </Text>
-        )}
-        {added !== undefined && <Text dimColor>{`  ${added}`}</Text>}
+      <Box flexDirection="column">
+        <Box>
+          {window('5h', fiveHour)}
+          <Text>{'  ·  '}</Text>
+          {window('week', weekly)}
+          {context !== null && latest !== undefined && (
+            <Text dimColor>
+              {`  ·  ctx ${context.percent}% ${formatTokens(latest)}/${formatTokens(context.window)} ${sparkline(context.history, context.window)}`}
+            </Text>
+          )}
+          {added !== undefined && <Text dimColor>{`  ${added}`}</Text>}
+        </Box>
+        {context?.memoryDir !== undefined && <Text dimColor>{`memory: ${context.memoryDir}`}</Text>}
       </Box>
     )
   })
